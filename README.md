@@ -1,2 +1,2 @@
 # TerminalImageRenderer
-A way to draw image buffers to termnal using ncurses
+Implements a way to draw image buffers to termnal using ncurses in C.
