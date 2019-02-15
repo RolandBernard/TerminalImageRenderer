@@ -1,7 +1,7 @@
 # TerminalImageRenderer
 
 Implements a way to draw image buffers to termnal in C.
-The implementation only supports terminals with true color and the ability to diablay
+The implementation only supports terminals with true color and the ability to display
 Unicode block characters.
 
 ---
