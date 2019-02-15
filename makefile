@@ -4,7 +4,7 @@ LIB=./lib/bin
 INCLUDE=./lib/include
 
 LIBS=
-ARGS=-O3 -Wall
+ARGS=-g -Wall
 OBJECTS=$(BUILD)/tir.o
 TARGET=./test
 LIBTARGET=libtir.a
@@ -12,14 +12,14 @@ CC=gcc
 CLEAN=rm -f
 COPY=cp -R
 
+all: ./lib $(TARGET)
+
 ./lib: $(OBJECTS)
 	$(COPY) $(SRC)/tir.h $(INCLUDE)/
 	ar rcs $(LIB)/$(LIBTARGET) $(OBJECTS)
 
 $(TARGET): $(OBJECTS) $(BUILD)/test.o
 	$(CC) $(ARGS) -o $(TARGET) $(OBJECTS) $(BUILD)/test.o $(LIBS)
-
-all: ./lib $(TARGET)
 
 $(BUILD)/test.o: $(SRC)/test.c $(SRC)/tir.h
 	$(CC) $(ARGS) -c -o $(BUILD)/test.o $(SRC)/test.c $(LIBS)
