@@ -40,31 +40,30 @@ int tir_get_height() {
 	return TIR_HEIGHT();
 }
 
-static void term_reset() { 
-	write(STDOUT_FILENO, "\x1b[2J", 4);
-	write(STDOUT_FILENO, "\x1b[H", 3);
-	write(STDOUT_FILENO, "\x1b[m", 3);
-	tcsetattr(STDIN_FILENO, 0, &tir_old_term);
-}
-
 void tir_set_winch_callback(void (*func)()) {
 	tir_winch_callback = func;
 }
 
 static void* sig_thread(void* ud) {
-	tir_refresh_size();
-	if(tir_winch_callback != NULL)
-		tir_winch_callback();
+	long sig = (long)ud;
+	if(sig == SIGINT)
+		exit(EXIT_SUCCESS);
+	else if(sig == SIGWINCH) {
+		tir_refresh_size();
+		if(tir_winch_callback != NULL)
+			tir_winch_callback();
+	}
 	return NULL;
 }
 
 static void sig_hand(int sig) {
-	if(sig == SIGINT)
-		exit(EXIT_SUCCESS);
-	else if(sig == SIGWINCH) {
-		pthread_t thr;
-		pthread_create(&thr, NULL, sig_thread, NULL);
-	}
+	pthread_t thr;
+	pthread_create(&thr, NULL, sig_thread, (void*)(long)sig);
+}
+
+// To avoid annoing warnigs
+static void tir_end_scr_void() {
+	tir_end_scr();
 }
 
 int tir_init_scr() {
@@ -73,7 +72,7 @@ int tir_init_scr() {
 
 	if(tcgetattr(STDIN_FILENO, &tir_old_term) == -1)
 		return ERR;
-	if(atexit(term_reset))
+	if(atexit(tir_end_scr_void))
 		return ERR;
 
 	struct termios newterm = tir_old_term;
@@ -315,6 +314,10 @@ int tir_end_scr() {
 		tir_w_lock();
 		free(tir_buffer);
 		tir_buffer = NULL;
+		write(STDOUT_FILENO, "\x1b[m", 3);
+		write(STDOUT_FILENO, "\x1b[2J", 4);
+		write(STDOUT_FILENO, "\x1b[H", 3);
+		tcsetattr(STDIN_FILENO, 0, &tir_old_term);
 		tir_unlock_buffer();
 		return OK;
 	} else

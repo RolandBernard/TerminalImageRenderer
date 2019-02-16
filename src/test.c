@@ -30,11 +30,11 @@ int main() {
 	tir_init_scr();
 
 	draw();
-	tir_set_winch_callback(draw);
+//	tir_set_winch_callback(draw);
 
-	while(1) {
-		sleep(2);
-	}
+//	while(1) {
+//		sleep(2);
+//	}
 
 	tir_end_scr();
 	return 0;
