@@ -1,10 +1,12 @@
 // Copyright (c) 2019 Roland Bernard
 
 #include <unistd.h>
+#include <stdio.h>
 
 #include "tir.h"
 
 void draw() {
+	tir_lock_buffer();
 	for(int x = 0; x < tir_get_width(); x++)
 		for(int y = 0; y < tir_get_height(); y++) {
 			tir_color_t* pix = tir_get_pixel(x, y);
@@ -21,6 +23,7 @@ void draw() {
 			}
 		}
 	tir_refresh();
+	tir_unlock_buffer();
 }
 
 int main() {
@@ -30,7 +33,7 @@ int main() {
 	tir_set_winch_callback(draw);
 
 	while(1) {
-		sleep(1);
+		sleep(2);
 	}
 
 	tir_end_scr();

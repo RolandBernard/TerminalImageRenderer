@@ -3,7 +3,7 @@ BUILD=./build
 LIB=./lib/bin
 INCLUDE=./lib/include
 
-LIBS=
+LIBS=-lpthread
 ARGS=-g -Wall
 OBJECTS=$(BUILD)/tir.o
 TARGET=./test

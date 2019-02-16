@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
+#include <pthread.h>
 
 #include "tir.h"
 
@@ -19,6 +21,8 @@
 
 #define ERR -1
 #define OK 0
+
+static pthread_rwlock_t tir_buffer_lock = PTHREAD_RWLOCK_INITIALIZER;
 
 static int tir_width = 0;
 static int tir_height = 0;
@@ -47,13 +51,19 @@ void tir_set_winch_callback(void (*func)()) {
 	tir_winch_callback = func;
 }
 
+static void* sig_thread(void* ud) {
+	tir_refresh_size();
+	if(tir_winch_callback != NULL)
+		tir_winch_callback();
+	return NULL;
+}
+
 static void sig_hand(int sig) {
 	if(sig == SIGINT)
 		exit(EXIT_SUCCESS);
 	else if(sig == SIGWINCH) {
-		tir_refresh_size();
-		if(tir_winch_callback != NULL)
-			tir_winch_callback();
+		pthread_t thr;
+		pthread_create(&thr, NULL, sig_thread, NULL);
 	}
 }
 
@@ -63,9 +73,8 @@ int tir_init_scr() {
 
 	if(tcgetattr(STDIN_FILENO, &tir_old_term) == -1)
 		return ERR;
-	atexit(term_reset);
-	signal(SIGINT, sig_hand);
-	signal(SIGWINCH, sig_hand);
+	if(atexit(term_reset))
+		return ERR;
 
 	struct termios newterm = tir_old_term;
 	newterm.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
@@ -74,9 +83,14 @@ int tir_init_scr() {
 	newterm.c_lflag &= ~(ICANON | ECHO | IEXTEN);
 	newterm.c_cc[VMIN] = 0;
 	newterm.c_cc[VTIME] = 0;
-	tcsetattr(STDIN_FILENO, 0, &newterm);
+	if(tcsetattr(STDIN_FILENO, 0, &newterm) == -1)
+		return ERR;
 
 	tir_refresh_size();
+	
+	if(signal(SIGINT, sig_hand) == SIG_ERR ||
+		signal(SIGWINCH, sig_hand) == SIG_ERR)
+		return ERR;
 	return OK;
 }
 
@@ -91,6 +105,18 @@ tir_color_t* tir_get_pixel(int x, int y) {
 		return NULL;
 }
 
+static void tir_w_lock() {
+	pthread_rwlock_wrlock(&tir_buffer_lock);
+}
+
+void tir_lock_buffer() {
+	pthread_rwlock_rdlock(&tir_buffer_lock);
+}
+
+void tir_unlock_buffer() {
+	pthread_rwlock_unlock(&tir_buffer_lock);
+}
+
 static tir_color_t* tir_get_char_pixel(int cx, int cy, int x, int y) {
 	return tir_get_pixel(cx*SUP_SAMP_HOR+x, cy*SUP_SAMP_VER+y);
 }
@@ -101,10 +127,10 @@ static int tir_get_char_loss(const unsigned char* map, int pw, int ph, int cx, i
 	int num_forg = 0;
 	int num_backg = 0;
 	// Full char
-	for(int x = 0; x < pw; x++)
-		for(int y = 0; y < ph; y++) {
-			tir_color_t* pcolor = tir_get_char_pixel(cx, cy, x*SUP_SAMP_HOR/pw, y*SUP_SAMP_VER/ph);
-			if(map[y*pw+x]) {
+	for(int x = 0; x < SUP_SAMP_HOR; x++)
+		for(int y = 0; y < SUP_SAMP_VER; y++) {
+			tir_color_t* pcolor = tir_get_char_pixel(cx, cy, x, y);
+			if(map[y*ph/SUP_SAMP_VER*pw+x*pw/SUP_SAMP_HOR]) {
 				fcolor[0] += (int)pcolor[0][0];
 				fcolor[1] += (int)pcolor[0][1];
 				fcolor[2] += (int)pcolor[0][2];
@@ -181,12 +207,16 @@ static const unsigned char tir_map_quart_diag_block[] = {
 
 static const unsigned char* tir_maps[] = {
 	tir_map_full_block,
+#if SUP_SAMP_VER >= 2
 	tir_map_half_block,
+#if SUP_SAMP_HOR >= 2
 	tir_map_quart_upleft_block,
 	tir_map_quart_upright_block,
 	tir_map_quart_downleft_block,
 	tir_map_quart_downright_block,
 	tir_map_quart_diag_block,
+#endif
+#endif
 };
 static const int tir_map_sizes[][2] = {
 	{1, 1},
@@ -208,6 +238,7 @@ static const char* tir_map_chars[] = {
 };
 
 void tir_refresh() {
+	tir_lock_buffer();
 	if(tir_buffer != NULL) /*Init has to be called*/ {
 		char screen_buffer[tir_width*tir_height*64];
 		int buffer_size = 0;
@@ -257,6 +288,7 @@ void tir_refresh() {
 		
 		write(STDOUT_FILENO, screen_buffer, buffer_size);
 	}
+	tir_unlock_buffer();
 }
 
 void tir_refresh_size() {
@@ -269,17 +301,21 @@ void tir_refresh_size() {
 	new_height = w.ws_row;
 
 	if(new_width != tir_width || new_height != tir_height) {
+		tir_w_lock();
 		tir_width = new_width;
 		tir_height = new_height;
 		tir_buffer = realloc(tir_buffer, TIR_WIDTH()*TIR_HEIGHT()*sizeof(tir_color_t));
 		assert(tir_buffer != NULL);
+		tir_unlock_buffer();
 	}
 }
 
 int tir_end_scr() {
 	if(tir_buffer != NULL) {
+		tir_w_lock();
 		free(tir_buffer);
 		tir_buffer = NULL;
+		tir_unlock_buffer();
 		return OK;
 	} else
 		return ERR;

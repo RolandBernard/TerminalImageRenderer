@@ -19,6 +19,10 @@ int tir_get_height();
 
 int tir_init_scr();
 
+void tir_lock_buffer();
+
+void tir_unlock_buffer();
+
 tir_color_t* tir_get_buffer();
 
 void tir_refresh();
