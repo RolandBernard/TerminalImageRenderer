@@ -3,7 +3,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <signal.h>
-#include <pthread.h>
 #include <stdlib.h>
 
 #include "tir.h"
@@ -29,14 +28,11 @@ void draw() {
 	tir_unlock_buffer();
 }
 
-void* sig_thread(void* ud) /*  */ {
-	tir_end_scr();
-	exit(EXIT_SUCCESS);
-}
+static int running = 1;
 
 void sig_hand(int sig) {
-	pthread_t thr;
-	pthread_create(&thr, NULL, sig_thread, NULL);
+	if(sig == SIGINT)
+		running = 0;
 }
 
 int main() {
@@ -49,8 +45,8 @@ int main() {
 	draw();
 	tir_set_winch_callback(draw);
 
-	while(1) {
-		sleep(2);
+	while(running) {
+		usleep(100000);
 	}
 
 	tir_end_scr();

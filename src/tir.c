@@ -44,6 +44,9 @@ void tir_set_winch_callback(void (*func)()) {
 	tir_winch_callback = func;
 }
 
+/*
+ * We need a own thread for resizing because we have to wait until the buffer is no longer used
+ */
 static void* sig_thread(void* ud) {
 	long sig = (long)ud;
 	if(sig == SIGWINCH) {
@@ -75,6 +78,7 @@ int tir_init_scr() {
 	newterm.c_cc[VTIME] = 0;
 	if(tcsetattr(STDIN_FILENO, 0, &newterm) == -1)
 		return ERR;
+	write(STDIN_FILENO, "\x1b[?25l", 6);
 
 	tir_refresh_size();
 	
@@ -258,8 +262,8 @@ void tir_refresh() {
 		char screen_buffer[tir_width*tir_height*64];
 		int buffer_size = 0;
 
-		memcpy(screen_buffer+buffer_size, "\x1b[H\x1b[?25l", 9);
-		buffer_size += 9;
+		memcpy(screen_buffer+buffer_size, "\x1b[H", 3);
+		buffer_size += 3;
 
 		for(int cy = 0; cy < tir_height; cy++) {
 			for(int cx = 0; cx < tir_width; cx++) {
@@ -293,13 +297,8 @@ void tir_refresh() {
 			if(cy != tir_height-1) {
 				memcpy(screen_buffer+buffer_size, "\n\r", 2);
 				buffer_size += 2;
-			} else {
-				memcpy(screen_buffer+buffer_size, "\x1b[m", 3);
-				buffer_size += 3;
 			}
 		}
-		memcpy(screen_buffer+buffer_size, "\x1b[?25h", 6);
-		buffer_size += 6;
 		
 		write(STDOUT_FILENO, screen_buffer, buffer_size);
 	}
@@ -330,10 +329,8 @@ int tir_end_scr() {
 		tir_w_lock();
 		free(tir_buffer);
 		tir_buffer = NULL;
-		write(STDOUT_FILENO, "\x1b[m", 3);
-		write(STDOUT_FILENO, "\x1b[2J", 4);
-		write(STDOUT_FILENO, "\x1b[H", 3);
 		tcsetattr(STDIN_FILENO, 0, &tir_old_term);
+		write(STDOUT_FILENO, "\x1b[m\x1b[2J\x1b[H\x1b[?25h", 16);
 		tir_unlock_buffer();
 		return OK;
 	} else
