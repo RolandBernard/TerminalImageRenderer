@@ -179,10 +179,17 @@ static int tir_get_char_loss(const unsigned char* map, int pw, int ph, int cx, i
 
 // Defining posible chars
 static const unsigned char tir_map_full_block[] = {1};
-static const unsigned char tir_map_half_block[] = {
+#if SUP_SAMP_HOR >= 2
+static const unsigned char tir_map_half_vert_block[] = {
+	1, 0
+};
+#endif
+#if SUP_SAMP_VER >= 2
+static const unsigned char tir_map_half_hor_block[] = {
 	1,
 	0
 };
+#if SUP_SAMP_HOR >= 2
 static const unsigned char tir_map_quart_upleft_block[] = {
 	1, 0,
 	0, 0
@@ -203,11 +210,16 @@ static const unsigned char tir_map_quart_diag_block[] = {
 	1, 0,
 	0, 1
 };
+#endif
+#endif
 
 static const unsigned char* tir_maps[] = {
 	tir_map_full_block,
+#if SUP_SAMP_HOR >= 2
+	tir_map_half_vert_block,
+#endif
 #if SUP_SAMP_VER >= 2
-	tir_map_half_block,
+	tir_map_half_hor_block,
 #if SUP_SAMP_HOR >= 2
 	tir_map_quart_upleft_block,
 	tir_map_quart_upright_block,
@@ -219,21 +231,35 @@ static const unsigned char* tir_maps[] = {
 };
 static const int tir_map_sizes[][2] = {
 	{1, 1},
+#if SUP_SAMP_HOR >= 2
+	{2, 1},
+#endif
+#if SUP_SAMP_VER >= 2
 	{1, 2},
+#if SUP_SAMP_HOR >= 2
 	{2, 2},
 	{2, 2},
 	{2, 2},
 	{2, 2},
 	{2, 2},
+#endif
+#endif
 };
 static const char* tir_map_chars[] = {
 	"█",
+#if SUP_SAMP_HOR >= 2
+	"▌",
+#endif
+#if SUP_SAMP_VER >= 2
 	"▀",
+#if SUP_SAMP_HOR >= 2
 	"▘",
 	"▝",
 	"▖",
 	"▗",
 	"▚",
+#endif
+#endif
 };
 
 void tir_refresh() {
