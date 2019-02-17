@@ -46,9 +46,7 @@ void tir_set_winch_callback(void (*func)()) {
 
 static void* sig_thread(void* ud) {
 	long sig = (long)ud;
-	if(sig == SIGINT)
-		exit(EXIT_SUCCESS);
-	else if(sig == SIGWINCH) {
+	if(sig == SIGWINCH) {
 		tir_refresh_size();
 		if(tir_winch_callback != NULL)
 			tir_winch_callback();
@@ -61,18 +59,11 @@ static void sig_hand(int sig) {
 	pthread_create(&thr, NULL, sig_thread, (void*)(long)sig);
 }
 
-// To avoid annoing warnigs
-static void tir_end_scr_void() {
-	tir_end_scr();
-}
-
 int tir_init_scr() {
 	if(tir_buffer != NULL)
 		return ERR;
 
 	if(tcgetattr(STDIN_FILENO, &tir_old_term) == -1)
-		return ERR;
-	if(atexit(tir_end_scr_void))
 		return ERR;
 
 	struct termios newterm = tir_old_term;
@@ -87,8 +78,7 @@ int tir_init_scr() {
 
 	tir_refresh_size();
 	
-	if(signal(SIGINT, sig_hand) == SIG_ERR ||
-		signal(SIGWINCH, sig_hand) == SIG_ERR)
+	if(signal(SIGWINCH, sig_hand) == SIG_ERR)
 		return ERR;
 	return OK;
 }
