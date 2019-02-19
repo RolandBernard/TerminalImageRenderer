@@ -259,7 +259,7 @@ static const char* tir_map_chars[] = {
 void tir_refresh() {
 	tir_lock_buffer();
 	if(tir_buffer != NULL) /*Init has to be called*/ {
-		char screen_buffer[tir_width*tir_height*64];
+		char* screen_buffer = (char*)malloc(tir_width*tir_height*64*sizeof(char));
 		int buffer_size = 0;
 
 		memcpy(screen_buffer+buffer_size, "\x1b[H", 3);
@@ -301,6 +301,7 @@ void tir_refresh() {
 		}
 		
 		write(STDOUT_FILENO, screen_buffer, buffer_size);
+		free(screen_buffer);
 	}
 	tir_unlock_buffer();
 }

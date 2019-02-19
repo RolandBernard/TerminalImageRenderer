@@ -4,7 +4,7 @@ LIB=./lib/bin
 INCLUDE=./lib/include
 
 LIBS=-lpthread
-ARGS=-g -Wall
+ARGS=-O3 -Wall
 OBJECTS=$(BUILD)/tir.o
 TARGET=./test
 LIBTARGET=libtir.a
@@ -22,10 +22,10 @@ $(TARGET): $(OBJECTS) $(BUILD)/test.o
 	$(CC) $(ARGS) -o $(TARGET) $(OBJECTS) $(BUILD)/test.o $(LIBS)
 
 $(BUILD)/test.o: $(SRC)/test.c $(SRC)/tir.h
-	$(CC) $(ARGS) -c -o $(BUILD)/test.o $(SRC)/test.c $(LIBS)
+	$(CC) $(ARGS) -c -o $(BUILD)/test.o $(SRC)/test.c
 
 $(BUILD)/tir.o: $(SRC)/tir.c $(SRC)/tir.h
-	$(CC) $(ARGS) -c -o $(BUILD)/tir.o $(SRC)/tir.c $(LIBS)
+	$(CC) $(ARGS) -c -o $(BUILD)/tir.o $(SRC)/tir.c
 
 clean:
 	$(CLEAN) $(OBJECTS) $(BUILD)/test.o
