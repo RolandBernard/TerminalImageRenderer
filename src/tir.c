@@ -78,7 +78,11 @@ int tir_init_scr() {
 	newterm.c_cc[VTIME] = 0;
 	if(tcsetattr(STDIN_FILENO, 0, &newterm) == -1)
 		return ERR;
-	write(STDIN_FILENO, "\x1b[?25l", 6);
+	write(STDIN_FILENO,
+		"\0337"			// Save cursor
+		"\x1b[?47h"		// Set buffer to alternet
+		"\x1b[?25l"		// Set curser to invisible
+	, 14);
 
 	tir_refresh_size();
 	
@@ -331,7 +335,13 @@ int tir_end_scr() {
 		free(tir_buffer);
 		tir_buffer = NULL;
 		tcsetattr(STDIN_FILENO, 0, &tir_old_term);
-		write(STDOUT_FILENO, "\x1b[m\x1b[2J\x1b[H\x1b[?25h", 16);
+		write(STDIN_FILENO, "\x1b[?47r\x1b[?25r", 12);
+		write(STDIN_FILENO,
+			"\0338"			// Reset curser
+			"\x1b[?47l"		// Set buffer to normal
+			"\x1b[?25h"		// Set cursor visible
+			"\x1b[m"		// Restore colors (?)
+		, 17);
 		tir_unlock_buffer();
 		return OK;
 	} else
