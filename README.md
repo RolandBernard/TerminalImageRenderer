@@ -5,7 +5,9 @@ The implementation only supports terminals with true color and the ability to di
 Unicode block characters.
 
 For a more interesting test than the one that is provided in this repository, take look at the tir-example
-branch of the SimpleGraphics repository: https://github.com/RolandBernard/SimpleGraphics/tree/tir-example.
+branch of the SimpleGraphics repository: https://github.com/RolandBernard/SimpleGraphics/tree/tir-example:
+
+![Screenshot](img/screenshot.png)
 
 ---
 ###### Copyright (c) 2019 Roland Bernard
